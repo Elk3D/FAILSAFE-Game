@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
@@ -10,8 +11,7 @@ using TMPro;
 ///   3. Author text fades in (after authorDelay seconds)
 ///   4. Both hold for holdDuration seconds
 ///   5. Text fades out
-///   6. Black overlay fades out
-///   7. Scene becomes interactive
+///   6. Next scene loads (black overlay stays, hiding the transition)
 ///
 /// SETUP:
 ///   1. Create a Canvas (Screen Space - Overlay, Sort Order 99)
@@ -19,10 +19,10 @@ using TMPro;
 ///   3. Add a TextMeshProUGUI for the quote  → assign to "quoteText"
 ///   4. Add a TextMeshProUGUI for the author → assign to "authorText"
 ///   5. Attach this script to a GameObject in the scene
-///   6. Fill in the quoteText and authorName fields in the Inspector
-///   7. Optionally wire up OnSequenceComplete to unlock gameplay
+///   6. Fill in quoteContent, authorName, and nextSceneName in the Inspector
 ///
 /// TIP: Set quoteText and authorText anchors to center-center for best results.
+/// Make sure your next scene is added to File > Build Settings.
 /// </summary>
 public class EpigraphSystem : MonoBehaviour
 {
@@ -33,6 +33,10 @@ public class EpigraphSystem : MonoBehaviour
 
     [Tooltip("Who said it. Leave blank to skip the author line.")]
     public string authorName = "— James Baldwin";
+
+    [Header("Scene Transition")]
+    [Tooltip("Name of the scene to load after the sequence. Must be added to Build Settings.")]
+    public string nextSceneName = "";
 
     [Header("UI References")]
     [Tooltip("Full-screen Image set to solid black (alpha 1).")]
@@ -59,13 +63,6 @@ public class EpigraphSystem : MonoBehaviour
 
     [Tooltip("How long to fade both texts out.")]
     [Range(0.1f, 3f)] public float textFadeOutDuration = 1f;
-
-    [Tooltip("How long to fade the black overlay out after texts disappear.")]
-    [Range(0.1f, 3f)] public float overlayFadeOutDuration = 1.5f;
-
-    [Header("Events")]
-    [Tooltip("Called when the sequence finishes and gameplay should begin.")]
-    public UnityEngine.Events.UnityEvent OnSequenceComplete;
 
     // -------------------------------------------------------------------------
 
@@ -114,12 +111,15 @@ public class EpigraphSystem : MonoBehaviour
         yield return fadeQuote;
         yield return fadeAuthor;
 
-        // --- 5. Fade overlay out ---
-        yield return StartCoroutine(FadeOverlay(1f, 0f, overlayFadeOutDuration));
-
-        // --- 6. Clean up and signal completion ---
-        backgroundOverlay.gameObject.SetActive(false);
-        OnSequenceComplete?.Invoke();
+        // --- 5. Load next scene (black overlay stays, masking the transition) ---
+        if (!string.IsNullOrWhiteSpace(nextSceneName))
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
+        else
+        {
+            Debug.LogWarning("[EpigraphSystem] nextSceneName is empty — set it in the Inspector.");
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -138,21 +138,6 @@ public class EpigraphSystem : MonoBehaviour
         }
 
         SetTextAlpha(target, to);
-    }
-
-    private IEnumerator FadeOverlay(float from, float to, float duration)
-    {
-        float elapsed = 0f;
-        SetAlpha(backgroundOverlay, from);
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            SetAlpha(backgroundOverlay, Mathf.Lerp(from, to, elapsed / duration));
-            yield return null;
-        }
-
-        SetAlpha(backgroundOverlay, to);
     }
 
     private static void SetTextAlpha(TMP_Text t, float a)
