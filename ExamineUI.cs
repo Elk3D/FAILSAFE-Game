@@ -1,6 +1,6 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
 /*
     ExamineUI.cs — Shared Examine Text Display System
@@ -11,9 +11,9 @@ using UnityEngine.UI;
     SETUP:
     - Create a Canvas in the scene (or use existing HUD canvas)
     - Add child "ExaminePanel" with Image (dark semi-transparent), CanvasGroup component
-    - Add child Text (UI.Text) inside ExaminePanel for the examine text
+    - Add child TextMeshPro - Text (UI) inside ExaminePanel for the examine text
     - Add this script to ExaminePanel
-    - Assign examineText field to the Text component
+    - Assign examineText field to the TMP_Text component
     - ExaminePanel starts with CanvasGroup alpha = 0
 */
 
@@ -22,8 +22,8 @@ public class ExamineUI : MonoBehaviour
     public static ExamineUI Instance { get; private set; }
 
     [Header("UI References")]
-    [Tooltip("The Text component that displays examine text")]
-    public Text examineText;
+    [Tooltip("The TMP_Text component that displays examine text")]
+    public TMP_Text examineText;
 
     [Header("Settings")]
     [Tooltip("Duration of fade in/out transitions")]

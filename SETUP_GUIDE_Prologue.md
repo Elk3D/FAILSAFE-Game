@@ -160,6 +160,7 @@ Player                          (tag: "Player")
 └── NeckJoint                   (empty, Position: 0,1.6,0)
     └── MainCamera              (tag: "MainCamera")
         ├── Camera              (FOV: 80, Near: 0.1, Far: 100)
+        ├── CinemachineBrain    (see Cinemachine setup below)
         ├── MouseLook            (sensitivityX: 2, sensitivityY: 2, lockCursor: true)
         ├── Interact
         ├── Squint
@@ -168,7 +169,7 @@ Player                          (tag: "Player")
         ├── HoldPos             (empty, Position: 0,0,0.5 — for GrabbableObject)
         │
         └── [UI Canvas]         (Screen Space - Overlay)
-            ├── InteractionUI   (UI.Text + Animation for popup/popout)
+            ├── InteractionUI   (TMP_Text + Animation for popup/popout)
             ├── CrosshairUI     (UI.Image, small white dot, centered)
             ├── ExaminePanel    (see ExamineUI setup below)
             └── PhotoUI         (see PhotoInteraction setup below)
@@ -219,15 +220,37 @@ Set these up in **Edit > Project Settings > Input Manager**:
 | Crouch | Left Control |
 | Jump | Space |
 
+### Cinemachine Setup
+
+1. Add **CinemachineBrain** component to MainCamera
+2. Create a **CinemachineCamera** (formerly CinemachineVirtualCamera in CM 2.x) in the scene:
+   - Name it `VCam_Player`
+   - Set **Body**: Transposer, Follow = Player's NeckJoint
+   - Set **Aim**: Composer (or POV for first-person)
+   - Priority: 10 (default active camera)
+3. **Important**: BedroomDoorInteraction and PhotoInteraction automatically disable the CinemachineBrain during their camera animation sequences (camera transform lerps). This prevents Cinemachine from fighting the manual camera control. The brain re-enables when the sequence ends.
+4. If using Cinemachine 2.x (namespace `Cinemachine`), change the `using Unity.Cinemachine;` in BedroomDoorInteraction.cs and PhotoInteraction.cs to `using Cinemachine;`
+
+### Required Packages
+
+Ensure these are installed via **Window > Package Manager**:
+
+| Package | ID | Notes |
+|---------|-----|-------|
+| **Cinemachine** | `com.unity.cinemachine` | Camera management. Scripts reference `CinemachineBrain`. |
+| **ProBuilder** | `com.unity.probuilder` | Greybox geometry. No script dependencies. |
+| **TextMeshPro** | `com.unity.textmeshpro` | All UI text uses `TextMeshProUGUI` / `TMP_Text`. Import TMP Essentials when prompted. |
+
 ---
 
 ## 6. UI Setup
 
-### InteractionUI (existing pattern)
-- Canvas > Text (Legacy) named "InteractionUI"
+### InteractionUI (TextMeshPro)
+- Canvas > **TextMeshPro - Text (UI)** named "InteractionUI"
 - Anchor: bottom center
 - Font size: 18, color white, center alignment
 - Add Animation component with clips: `An_InteractTextPopup`, `An_InteractTextPopout`
+- **NOTE**: Interact.cs now uses `TextMeshProUGUI` instead of legacy `Text`
 
 ### CrosshairUI (existing pattern)
 - Canvas > Image named "CrosshairUI"
@@ -239,12 +262,12 @@ Set these up in **Edit > Project Settings > Input Manager**:
 2. Add **Image** component: color `(0, 0, 0, 0.7)` — dark semi-transparent
 3. Add **CanvasGroup** component: alpha = 0
 4. Anchor: stretch-stretch (full screen) with margins (100px each side)
-5. Child: **Text (Legacy)** named "ExamineText"
+5. Child: **TextMeshPro - Text (UI)** named "ExamineText"
    - Anchor: center, stretch width
    - Font size: 22, color white, center alignment
    - Line spacing: 1.2
 6. Add **ExamineUI.cs** script to ExaminePanel
-7. Assign ExamineText field → the Text child
+7. Assign ExamineText field → the TMP_Text child
 
 ### PhotoUI (for PhotoInteraction.cs)
 1. Canvas > Create empty "PhotoPanel"

@@ -1,13 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
 
-/* 
+/*
 
     First Person Interaction Toolkit by Steven Harmon stevenharmongames.com
     Licensed under the MPL 2.0. https://www.mozilla.org/en-US/MPL/2.0/FAQ/
-    Please use in your walking sims/horror/adventure/puzzle games! Drop me a line and share what make with it! :)    
+    Please use in your walking sims/horror/adventure/puzzle games! Drop me a line and share what make with it! :)
 
  */
 public class Interact : MonoBehaviour
@@ -22,7 +22,7 @@ public class Interact : MonoBehaviour
     public GameObject InteractionUI;
     public GameObject CrosshairUI;
     private Animation anim;
-    private Text dispText;
+    private TextMeshProUGUI dispText;
     private float dist = 1000;
     [System.NonSerialized]
     public string message = "";
@@ -34,7 +34,7 @@ public class Interact : MonoBehaviour
     void Start()
     {
         anim = InteractionUI.GetComponent<Animation>();
-        dispText = InteractionUI.GetComponent<Text>();
+        dispText = InteractionUI.GetComponent<TextMeshProUGUI>();
         dispText.text = "";
     }
 

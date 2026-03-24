@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using Unity.Cinemachine;
 
 /*
     PhotoInteraction.cs — Face-Down Photo Viewing Sequence
@@ -65,6 +66,7 @@ public class PhotoInteraction : MonoBehaviour
     private Interact InteractionScript;
     private PlayerMovement playerScript;
     private MouseLook[] lookScripts;
+    private CinemachineBrain cinemachineBrain;
 
     void Start()
     {
@@ -78,6 +80,8 @@ public class PhotoInteraction : MonoBehaviour
 
         if (frameRenderer != null)
             originColor = frameRenderer.material.color;
+
+        cinemachineBrain = MainCam.GetComponent<CinemachineBrain>();
 
         // Store the face-down rotation
         faceDownRotation = transform.localRotation;
@@ -119,11 +123,13 @@ public class PhotoInteraction : MonoBehaviour
     {
         isViewing = true;
 
-        // Freeze player
+        // Freeze player and disable Cinemachine so we can control the camera directly
         if (playerScript != null)
             playerScript.SetWorking(false);
         foreach (MouseLook look in lookScripts)
             look.working = false;
+        if (cinemachineBrain != null)
+            cinemachineBrain.enabled = false;
 
         // Play pickup sound
         if (pickupSound != null && audioSource != null)
@@ -172,7 +178,9 @@ public class PhotoInteraction : MonoBehaviour
         // Set photo face-down (restore original face-down rotation)
         transform.localRotation = faceDownRotation;
 
-        // Unfreeze player
+        // Re-enable Cinemachine and unfreeze player
+        if (cinemachineBrain != null)
+            cinemachineBrain.enabled = true;
         if (playerScript != null)
             playerScript.SetWorking(true);
         foreach (MouseLook look in lookScripts)

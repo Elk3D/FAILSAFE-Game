@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using Unity.Cinemachine;
 
 /*
     BedroomDoorInteraction.cs — 3-Attempt Bedroom Door with Permanent Lockout
@@ -55,6 +56,7 @@ public class BedroomDoorInteraction : MonoBehaviour
     private Interact InteractionScript;
     private PlayerMovement playerScript;
     private MouseLook[] lookScripts;
+    private CinemachineBrain cinemachineBrain;
 
     void Start()
     {
@@ -71,6 +73,8 @@ public class BedroomDoorInteraction : MonoBehaviour
 
         if (audioSource == null)
             audioSource = GetComponent<AudioSource>();
+
+        cinemachineBrain = MainCam.GetComponent<CinemachineBrain>();
     }
 
     public void Hovering()
@@ -105,10 +109,14 @@ public class BedroomDoorInteraction : MonoBehaviour
             playerScript.SetWorking(false);
         foreach (MouseLook look in lookScripts)
             look.working = false;
+        if (cinemachineBrain != null)
+            cinemachineBrain.enabled = false;
     }
 
     private void UnfreezePlayer()
     {
+        if (cinemachineBrain != null)
+            cinemachineBrain.enabled = true;
         if (playerScript != null)
             playerScript.SetWorking(true);
         foreach (MouseLook look in lookScripts)
