@@ -220,16 +220,98 @@ Set these up in **Edit > Project Settings > Input Manager**:
 | Crouch | Left Control |
 | Jump | Space |
 
-### Cinemachine Setup
+### Cinemachine Setup — Seamless Camera Blending
+
+The Prologue uses Cinemachine for smooth, cinematic camera transitions between gameplay
+and scripted sequences. The CinemachineBrain starts **disabled** during normal gameplay
+(MouseLook controls the camera). When a sequence triggers, the brain enables and blends
+the camera smoothly from the player's current view to the scripted angle and back.
+
+#### CinemachineBrain (on MainCamera)
 
 1. Add **CinemachineBrain** component to MainCamera
-2. Create a **CinemachineCamera** (formerly CinemachineVirtualCamera in CM 2.x) in the scene:
-   - Name it `VCam_Player`
-   - Set **Body**: Transposer, Follow = Player's NeckJoint
-   - Set **Aim**: Composer (or POV for first-person)
-   - Priority: 10 (default active camera)
-3. **Important**: BedroomDoorInteraction and PhotoInteraction automatically disable the CinemachineBrain during their camera animation sequences (camera transform lerps). This prevents Cinemachine from fighting the manual camera control. The brain re-enables when the sequence ends.
-4. If using Cinemachine 2.x (namespace `Cinemachine`), change the `using Unity.Cinemachine;` in BedroomDoorInteraction.cs and PhotoInteraction.cs to `using Cinemachine;`
+2. Set **Default Blend**: Style = **EaseInOut**, Time = **0.75**
+3. **Uncheck "enabled"** — brain starts disabled. Scripts enable/disable it during sequences.
+
+#### VCam_ReturnProxy (shared return camera)
+
+This invisible camera acts as the "player's current view" anchor. Before each sequence,
+scripts reposition it to match exactly where the player is looking. The brain blends
+FROM this camera TO the scripted camera, then back — creating seamless transitions.
+
+1. Create empty GameObject `VCam_ReturnProxy`
+2. Add **CinemachineCamera** component
+3. **No Body/Aim extensions** (leave defaults / "Do Nothing")
+4. Priority: **0** (lowest — always the fallback)
+5. **Deactivate the GameObject** (starts inactive, scripts manage it)
+
+#### Bedroom Door Sequence Cameras
+
+Three cameras near the bedroom door, each representing an attempt's viewpoint.
+Position them relative to the door handle at eye height (~1.6m).
+
+| Camera | Position | Rotation | Notes |
+|--------|----------|----------|-------|
+| `VCam_Door_Reach` | ~0.8m from door, eye height | Looking at door/handle area | Slight lean — Isaac almost reaches |
+| `VCam_Door_Touch` | ~0.5m from door, eye height | Same angle, more intimate | Closer — hand touching handle |
+| `VCam_Door_Dip` | ~0.7m from door, eye height | Pitched down ~40° at floor | Isaac can't look at the door anymore |
+
+For each:
+1. Create empty GameObject with name above
+2. Add **CinemachineCamera** component
+3. **No Body/Aim extensions** (fixed world-space cameras)
+4. Priority: **15**
+5. **Deactivate the GameObject** (starts inactive)
+
+**Positioning tips:**
+- Stand in Play mode where the player would be when interacting with the door
+- Place each camera where it "feels right" from that angle
+- VCam_Door_Reach: barely forward from the player position
+- VCam_Door_Touch: noticeably closer, as if Isaac's body leaned in
+- VCam_Door_Dip: same area as Touch, but rotate X by +40° (looking at floor)
+
+#### Photo View Camera
+
+1. Create empty GameObject `VCam_PhotoView`
+2. Add **CinemachineCamera** component
+3. **No Body/Aim extensions**
+4. Priority: **15**
+5. Position above and slightly in front of the photo on the shelf, angled down at it
+   - Should frame the photo nicely at ~0.3-0.5m distance
+   - Subtle downward angle (~30°)
+6. **Deactivate the GameObject** (starts inactive)
+
+#### How the blend system works
+
+```
+Normal gameplay:   Brain DISABLED, MouseLook controls camera
+                            │
+Player interacts ───────────┤
+                            ▼
+1. Freeze MouseLook + PlayerMovement
+2. Position VCam_ReturnProxy at current camera transform
+3. Activate VCam_ReturnProxy
+4. Enable CinemachineBrain (snaps to proxy = no visual change)
+5. Activate scripted VCam (e.g. VCam_Door_Reach)
+   → Brain blends from proxy to scripted over 0.75s (EaseInOut)
+6. Sequence plays (audio, text, etc.)
+7. Deactivate scripted VCam
+   → Brain blends back to proxy over 0.6s
+8. Disable brain, deactivate proxy
+9. Unfreeze MouseLook + PlayerMovement
+                            │
+Back to normal gameplay ────┘
+```
+
+#### Cinemachine 2.x vs 3.x Compatibility
+
+| | Cinemachine 2.x | Cinemachine 3.x |
+|---|---|---|
+| Namespace | `using Cinemachine;` | `using Unity.Cinemachine;` |
+| Camera type | `CinemachineVirtualCamera` | `CinemachineCamera` |
+| Brain blend | `brain.m_DefaultBlend.m_Time` | `brain.DefaultBlend.Time` |
+
+Scripts are written for **Cinemachine 3.x**. If using 2.x, update the using directives and type names.
 
 ### Required Packages
 
@@ -299,6 +381,11 @@ Every interactable object needs:
 - Assign `involuntarySound` AudioClip
 - Add AudioSource component
 - Collider on the door mesh
+- Assign Cinemachine cameras (see Cinemachine Setup section):
+  - `reachCamera` → VCam_Door_Reach
+  - `touchCamera` → VCam_Door_Touch
+  - `dipCamera` → VCam_Door_Dip
+  - `returnCamera` → VCam_ReturnProxy
 
 #### Photo Frame (on shelf)
 - Script: **PhotoInteraction.cs**
@@ -307,6 +394,9 @@ Every interactable object needs:
 - Assign `photoUI` → PhotoImage in canvas
 - Assign `frameRenderer` → the frame's Renderer
 - Add AudioSource component
+- Assign Cinemachine cameras:
+  - `photoViewCamera` → VCam_PhotoView
+  - `returnCamera` → VCam_ReturnProxy (same shared proxy)
 
 #### TV Screen
 - Script: **TVInteraction.cs**
